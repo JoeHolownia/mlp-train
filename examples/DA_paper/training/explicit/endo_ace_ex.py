@@ -161,8 +161,13 @@ def solvation(
     solvent = solvent_config.ase_atoms
 
     def wrap(D, cell, pbc):
-        """wrap distance to nearest neighbor
-        D: distance"""
+        """
+        Wrap distance to nearest neighbor
+
+        -----------------------------------------------------------------------
+        Arguments:
+            D: distance
+        """
         for i, periodic in enumerate(pbc):
             if periodic:
                 d = D[:, i]
@@ -171,9 +176,13 @@ def solvation(
         return None
 
     def molwrap(atoms, n, idx=0):
-        """Wrap to cell without breaking molecule
-        n: number of atoms per solvent molecule
-        idx: which atom in the solvent molecule to determine molecular distances from"""
+        """Wrap to cell without breaking molecule.
+
+        -----------------------------------------------------------------------
+        Arguments:
+            n: number of atoms per solvent molecule
+            idx: which atom in the solvent molecule to determine molecular distances from
+        """
         center = atoms.cell.diagonal() / 2
         positions = atoms.positions.reshape((-1, n, 3))
         distances = positions[:, idx] - center
