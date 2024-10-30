@@ -5,13 +5,10 @@ import mlptrain as mlt
 from mlptrain.log import logger
 from mlptrain.box import Box
 
+
 def from_ase_to_autode(atoms):
     """
     Convert ase atoms to autode atoms.
-
-    -----------------------------------------------------------------------
-    Arguments:
-        atoms: input ase atoms
     """
     # atoms is ase.Atoms
     autode_atoms = []
@@ -30,7 +27,7 @@ def from_ase_to_autode(atoms):
     return autode_atoms
 
 
-def add_water(solute: mlt.Configuration, n: int = 2):
+def add_water(solute: mlt.Configuration, n: int = 2) -> mlt.Configuration:
     """
     Add water molecules to the reactive species.
 
@@ -38,6 +35,8 @@ def add_water(solute: mlt.Configuration, n: int = 2):
     Arguments:
         solute: mlt.Configuration, the molecule to add water molecules, should including box
         n: number of water molecules to add
+    Return:
+        mlt.Configuration() configuration of solute and added water
     """
     from ase import Atoms
     from ase.calculators.tip3p import rOH, angleHOH
@@ -89,7 +88,7 @@ def add_water(solute: mlt.Configuration, n: int = 2):
         if sys.numbers[atm] == 8:
             O_idx.append(atm)
 
-    # the direction to add water molecules to avioding unphysical cases, system specific
+    # the direction to add water molecules to avoiding unphysical cases, system specific
     C98 = (sys[C_idx[7]].position - sys[C_idx[8]].position) / np.linalg.norm(
         sys[C_idx[7]].position - sys[C_idx[8]].position
     )
@@ -128,11 +127,13 @@ def add_water(solute: mlt.Configuration, n: int = 2):
     return added_water
 
 
-def solvation(solute_config: mlt.Configuration,
-              solvent_config: mlt.Configuration,
-              apm: int,
-              radius: float,
-              enforce: bool = True) -> mlt.Configuration:
+def solvation(
+    solute_config: mlt.Configuration,
+    solvent_config: mlt.Configuration,
+    apm: int,
+    radius: float,
+    enforce: bool = True,
+) -> mlt.Configuration:
     """
     Function to generate solvated system by adding the solute at the center of box,
     then remove the overlapped solvent molecules (adapted from https://doi.org/10.1002/qua.26343)
@@ -145,7 +146,7 @@ def solvation(solute_config: mlt.Configuration,
         radius: cutout radius around each solute atom
         enforce: True / False Wrap solvent regardless of previous solvent PBC choices
     Returns:
-
+        mlt.Configuration solvated system config
     """
     assert solute_config.box is not None, 'configuration must have box'
     assert solvent_config.box is not None, 'configuration must have box'
@@ -230,11 +231,13 @@ def solvation(solute_config: mlt.Configuration,
     return solvation
 
 
-def generate_init_solv_configs(n: int,
-                               solvent_mol: mlt.Molecule,
-                               bulk_solvent: bool = True,
-                               include_TS: bool = True,
-                               TS_info: Tuple[str, int, int] = None) -> mlt.ConfigurationSet:
+def generate_init_solv_configs(
+    n: int,
+    solvent_mol: mlt.Molecule,
+    bulk_solvent: bool = True,
+    include_TS: bool = True,
+    TS_info: Tuple[str, int, int] = None,
+) -> mlt.ConfigurationSet:
     """
     Generate initial configuration to train potential.
     It can generate three sets (pure solvent, TS immersed in solvent and TS bounded two solvent molecules)
@@ -259,11 +262,15 @@ def generate_init_solv_configs(n: int,
     # load TS in box
     TS: mlt.Configuration = None
     if include_TS:
-        assert TS_info is not None, "If include TS is set to true, a TS file must be provided..."
+        assert (
+            TS_info is not None
+        ), 'If include TS is set to true, a TS file must be provided...'
 
         TS_file_path, TS_charge, TS_mult = TS_info
         TS_config_set = mlt.ConfigurationSet()
-        TS_config_set.load_xyz(filename=TS_file_path, charge=TS_charge, mult=TS_mult)
+        TS_config_set.load_xyz(
+            filename=TS_file_path, charge=TS_charge, mult=TS_mult
+        )
         TS = TS_config_set[0]
         TS.box = Box([11, 11, 11])
         TS.charge = TS_charge
@@ -272,7 +279,6 @@ def generate_init_solv_configs(n: int,
     init_configs = mlt.ConfigurationSet()
 
     if bulk_solvent:
-
         # TS immersed in a solvent box
         if include_TS:
             solvent_system = mlt.System(solvent_mol, box=Box([11, 11, 11]))
@@ -288,16 +294,20 @@ def generate_init_solv_configs(n: int,
 
         # pure solvent box
         else:
-            solvent_system = mlt.System(solvent_mol, box=Box([9.32, 9.32, 9.32]))
+            solvent_system = mlt.System(
+                solvent_mol, box=Box([9.32, 9.32, 9.32])
+            )
             solvent_system.add_molecules(solvent_mol, num=26)
 
             for i in range(n):
                 pure_water = solvent_system.random_configuration()
                 init_configs.append(pure_water)
 
-    # TS bounded with two solvent molecules (in case of water and DA reaction, at carbonyl group to form hydrogen bond)
+    # TS bounded with two water molecules at carbonyl group to form hydrogen bond
     else:
-        assert include_TS, "If bulk_solvent is false, the TS must be included..."
+        assert (
+            include_TS
+        ), 'If bulk_solvent is false, the TS must be included...'
         for i in range(n):
             TS_with_water = add_water(solute=TS, n=2)
             init_configs.append(TS_with_water)
@@ -310,7 +320,9 @@ def generate_init_solv_configs(n: int,
     return init_configs
 
 
-def sample_randomly_from_configset(configurationset: mlt.ConfigurationSet, size: int) -> List[mlt.Configuration]:
+def sample_randomly_from_configset(
+    configurationset: mlt.ConfigurationSet, size: int
+) -> List[mlt.Configuration]:
     """
     Simply returns a randomly sampled sub-set of configurations from the
     input ConfigurationSet with a given size.
