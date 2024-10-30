@@ -29,6 +29,8 @@ def from_ase_to_autode(atoms):
 
 def add_water(solute: mlt.Configuration, n: int = 2) -> mlt.Configuration:
     """
+    # TODO: make generic for any solute and solvent!!!
+
     Add water molecules to the reactive species.
 
     -----------------------------------------------------------------------
@@ -88,6 +90,7 @@ def add_water(solute: mlt.Configuration, n: int = 2) -> mlt.Configuration:
         if sys.numbers[atm] == 8:
             O_idx.append(atm)
 
+    # TODO: this is system specific (we should allow this to be specified)
     # the direction to add water molecules to avoiding unphysical cases, system specific
     C98 = (sys[C_idx[7]].position - sys[C_idx[8]].position) / np.linalg.norm(
         sys[C_idx[7]].position - sys[C_idx[8]].position
