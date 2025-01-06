@@ -393,7 +393,7 @@ class ConfigurationSet(list):
 
                 # if using extended xyz format, get properties
                 config_box = box
-                if len(config_info) > 1:
+                if len(config_info) > 0:
                     if (
                         box is None
                         and config_info_dict.get('Lattice') is not None
