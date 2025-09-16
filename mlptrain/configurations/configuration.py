@@ -227,6 +227,7 @@ class Configuration(AtomCollection):
             random_seed,
         )
 
+
     def k_d_tree_insertion(
         self,
         solvent_molecule: ade.Molecule,

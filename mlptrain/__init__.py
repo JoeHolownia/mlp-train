@@ -45,6 +45,7 @@ __all__ = [
     'PlumedCustomCV',
     'plot_cv_versus_time',
     'plot_cv1_and_cv2',
+    'optimise_with_fix_solute',
     'convert_ase_time',
     'convert_ase_energy',
     'md',

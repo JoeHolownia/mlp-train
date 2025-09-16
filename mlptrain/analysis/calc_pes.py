@@ -5,13 +5,11 @@ import os
 import mlptrain as mlt
 from mlptrain.box import Box
 from mlptrain.autode_interface import MLPEST
+from mlptrain.log import logger
+from mlptrain.tools import optimise_with_fix_solute
 import multiprocessing as mp
 import autode as ade
 from ase.geometry import find_mic
-from mlptrain.log import logger
-from mlptrain.config import Config
-from mlptrain.sampling.md import _convert_ase_traj
-from mlptrain.utils import work_in_tmp_dir as work_in_tmp_dir_mlt
 import numpy as np
 import torch
 from ase.constraints import Hookean
@@ -86,65 +84,6 @@ def adjust_forces(self, atoms, forces):
     else:
         forces[self.index] += direction * magnitude
     return None
-
-
-# @work_in_tmp_dir_mlt()
-def optimise_with_fix_solute(
-    config: mlt.Configuration,
-    fmax: float,
-    mlp: mlt.potentials.MLPotential,
-    solute: mlt.Configuration = None,
-    **kwargs,
-) -> mlt.Configuration:
-    """
-    Optimise the configuration by MLP with a fixed solute (solute coords should be the first in configuration coords).
-
-    Parameters:
-        config (mlt.Configuration): the configuration either in vacuum or in solvent where the first len(solute) atoms
-                                    are those of the solute.
-        fmax (float):               fmax value for BFGS optimiser
-        mlp (mlt.potentials.MLPotential):
-        solute (mlt.Configuration): 'solute' configuration, if specified, takes the number of atoms in this config to determine
-                                    the first n atoms of 'config' to fix with constraints.
-    Returns:
-        mlt.Configuration: final frame config of optimised trajectory.
-    """
-    from ase.constraints import FixAtoms
-    from ase.optimize import BFGS
-    from ase.io.trajectory import Trajectory as ASETrajectory
-
-    assert config.box is not None, 'configuration must have box'
-    logger.info(
-        'Optimise the configuration with fixed solute (solute coords should at the first in configuration coords) by MLP'
-    )
-
-    n_cores = (
-        kwargs['n_cores'] if 'n_cores' in kwargs else min(Config.n_cores, 8)
-    )
-    os.environ['OMP_NUM_THREADS'] = str(n_cores)
-    logger.info(f'Using {n_cores} cores for MLP MD')
-
-    # get ase atoms and load calculator
-    ase_atoms = config.ase_atoms
-    logger.info(f'{ase_atoms.cell}, {ase_atoms.pbc}')
-    ase_atoms.calc = mlp.ase_calculator
-
-    # constrain solute atoms if specified
-    if solute is not None:
-        solute_idx = list(range(len(solute.atoms)))
-        constraints = FixAtoms(indices=solute_idx)
-        ase_atoms.set_constraint(constraints)
-
-    # run optimisation
-    asetraj = ASETrajectory('tmp.traj', 'w', ase_atoms)
-    dyn = BFGS(ase_atoms)
-    dyn.attach(asetraj.write, interval=2)
-    dyn.run(fmax=fmax)
-
-    # return final optimisation trajectory frame
-    traj = _convert_ase_traj('tmp.traj')
-    final_traj = traj.final_frame
-    return final_traj
 
 
 def calculate_pes(
@@ -289,7 +228,7 @@ def calculate_pes(
     # save npz of PES and save plot
     pes.save(filename=npz_fname)
     pes.plot(
-        filename=f'{save_name}_pes.pdf',
+        filename=f'{save_name}_pes.png',
     )
 
 
@@ -309,7 +248,7 @@ if __name__ == '__main__':
     ts_xyz_fpath = 'cis_endo_TS_wB97M.xyz'
     system_name = 'cis_endo_DA'
     react_coords = [(1, 12), (6, 11)]
-    opt_fmax = 0.5
+    opt_fmax = 0.01
     box_dim = [100.0, 100.0, 100.0]
     grid_spec = (2.0, 2.2, 2)  # debug
     # grid_spec = (1.55, 3.0, 20)  # debug
