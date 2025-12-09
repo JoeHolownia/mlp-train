@@ -207,6 +207,18 @@ def h2o_solvated_with_h2o():
     ]
     return mlt.Molecule(atoms=atoms, charge=0, mult=1)
 
+@pytest.fixture
+def h2_system_config(h2):
+    system = mlt.System(h2, box=[50, 50, 50])
+    config = system.random_configuration()
+    return system, config
+
+
+@pytest.fixture
+def h2o_system_config(h2o):
+    system = mlt.System(h2o, box=[50, 50, 50])
+    config = system.random_configuration()
+    return system, config
 
 @pytest.fixture
 def mg():

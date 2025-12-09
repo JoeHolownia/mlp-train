@@ -12,21 +12,6 @@ here = os.path.abspath(os.path.dirname(__file__))
 
 # All tests should have 'test_openmm' in their name so that they are skipped for the GAP CI run.
 
-
-@pytest.fixture
-def h2_system_config(h2):
-    system = mlt.System(h2, box=[50, 50, 50])
-    config = system.random_configuration()
-    return system, config
-
-
-@pytest.fixture
-def h2o_system_config(h2o):
-    system = mlt.System(h2o, box=[50, 50, 50])
-    config = system.random_configuration()
-    return system, config
-
-
 @work_in_zipped_dir(os.path.join(here, 'data/data.zip'))
 def test_openmm_topology(h2_system_config, h2o_system_config):
     """Test the creation of an OpenMM Topology from an ASE Atoms object."""
